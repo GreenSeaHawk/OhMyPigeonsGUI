@@ -1,120 +1,59 @@
 package org.example;
 
-import java.util.*;
-
-/*
-Game Flow:
-Initialise game:
-1. Ask how many players
-2. Create that many players and take 3 random cards from the deck to be in their starting hand.
-3. Player 1's turn, are you ready to see your cards? (Y/n)
-4. Player 1 then sees the cards and chooses one to use.
-5. If the card requires a target player the player is asked which player to target.
-6. The card action happens.
-7. Repeat the process until a player has 9 pigeons.
- */
-
+import javax.swing.*;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
-    private static final String csvPath= "src/main/resources/data/card-data.csv";
 
+    private static final String csvPath = "src/main/resources/data/card-data.csv";
 
     public static void main(String[] args) {
-        String pigeon = """
-       __
-     >(o )__
-       (  ._\\
-        `---'
-""";
+        SwingUtilities.invokeLater(Main::startGame);
+    }
 
-        System.out.println(pigeon);
-        Scanner sc = new Scanner(System.in);
-        int numPlayers = 0;
-        while (true) {
-            System.out.println("How many players are playing? (Enter 2-5)");
-            try {
-                numPlayers = sc.nextInt();
-                if (numPlayers < 2 || numPlayers > 5) {
-                    System.out.println("Please enter a number between 2 and 5.");
-                    continue;
-                }
-                break; // valid input
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter an integer.");
-                sc.next(); // consume invalid token
-            }
-        }
-        System.out.printf("You have chosen " + numPlayers + " players\n");
+    private static void startGame() {
+        int numPlayers = promptNumberOfPlayers();
+        if (numPlayers == -1) return; // user cancelled
 
         // Create the players
         List<Player> players = new ArrayList<>();
         for (int i = 1; i <= numPlayers; i++) {
-            players.add(new Player(i)); // assumes your Player has a constructor Player(int playerNumber)
+            players.add(new Player(i));
         }
 
-        // Verify they were created
-        for (Player p : players) {
-            System.out.println("Created Player " + p.getPlayerNumber());
-        }
+        // 🔑 Create a placeholder GUI first
+        PigeonGameGUI gui = new PigeonGameGUI(players, null);
 
-        // Create the deck
-        List<Card> startingDeck = DeckBuilder.buildDeck(csvPath, players);
+        // Build the deck (now GUI is available for actions)
+        List<Card> startingDeck = DeckBuilder.buildDeck(csvPath, players, gui);
         Deck deck = new Deck(startingDeck);
         deck.shuffle();
-        System.out.println("New deck created with " + deck.getDeck().size() + " cards");
 
         // Deal 3 cards to each player
         for (Player p : players) {
-            p.addCardToHand(deck.draw());
-            p.addCardToHand(deck.draw());
-            p.addCardToHand(deck.draw());
-        }
-
-        // Verify each player has 3 cards
-        for (Player p : players) {
-            System.out.println("Player " + p.getPlayerNumber() + " has " + p.getHand().size() + " cards");
-        }
-
-        int counter = 0;
-        while (Utils.allBenchesBelowNine(players)) {
-            // Set player
-            int playerTurn = counter % numPlayers;
-            Datastore.saveValue("currentPlayer", players.get(playerTurn));
-            Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
-            System.out.println("");
-            System.out.println("Current player: Player " + currentPlayer.getPlayerNumber());
-            // --- Choose a card ---
-            int chosenCard = -1;
-            while (true) {
-                System.out.println("Choose a card to play: ");
-                currentPlayer.printHand();
-                try {
-                    chosenCard = sc.nextInt();
-                    if (chosenCard < 0 || chosenCard >= currentPlayer.getHand().size()) {
-                        System.out.println("Invalid choice. Please enter a number between 0 and " + (currentPlayer.getHand().size() - 1));
-                        continue;
-                    }
-                    break; // valid choice
-                } catch (InputMismatchException e) {
-                    System.out.println("Invalid input. Please enter an integer.");
-                    sc.next(); // consume invalid token
-                }
+            for (int i = 0; i < 3; i++) {
+                p.addCardToHand(deck.draw());
             }
-            currentPlayer.playCard(chosenCard);
-            System.out.println("Card played");
-            currentPlayer.addCardToHand(deck.draw());
-            System.out.println("Card drawn");
-            for (Player p : players) {
-                System.out.println("Player " + p.getPlayerNumber() + " has " + p.getBench().getNumPigeons() + " pigeons");
-            }
-            counter += 1;
         }
-        for (Player p : players) {
-            if (p.getBench().getNumPigeons() >= 9)
-                System.out.println("Player " + p.getPlayerNumber() + " has won the game!");
-        }
-        System.out.println(pigeon);
-        sc.close();
 
+        // 🔑 Now link the deck properly to GUI
+        gui.setDeck(deck);
+        gui.updateTurn();
+    }
+
+    private static int promptNumberOfPlayers() {
+        Integer[] options = {2, 3, 4, 5};
+        Integer choice = (Integer) JOptionPane.showInputDialog(
+                null,
+                "How many players are playing?",
+                "Number of Players",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                options,
+                options[0]
+        );
+        if (choice == null) return -1; // user cancelled
+        return choice;
     }
 }

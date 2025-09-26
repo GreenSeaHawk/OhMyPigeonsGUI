@@ -1,369 +1,190 @@
 package org.example;
 
-import java.util.*;
+import javax.swing.*;
+import java.util.List;
+import java.util.Random;
 
 public class Actions {
 
-    public static void removeOnePigeonFromEveryoneElse(Player[] allPlayers) {
+    public static void removeOnePigeonFromEveryoneElse(List<Player> allPlayers, PigeonGameGUI gui) {
         Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
         for (Player p : allPlayers) {
-            if (p.getPlayerNumber() != currentPlayer.getPlayerNumber()
-                    && p.getBench().getNumPigeons() > 0) {
+            if (p != currentPlayer && p.getBench().getNumPigeons() > 0) {
                 p.getBench().subtractPigeons(1);
+                gui.appendLog("Player " + p.getPlayerNumber() + " loses 1 pigeon.");
             }
         }
+        gui.updateTurn();
     }
 
-    public static void takeOnePigeonFromAnotherPlayer(Player[] allPlayers) {
+    public static void takeOnePigeonFromAnotherPlayer(List<Player> allPlayers, PigeonGameGUI gui) {
         Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
-        Scanner sc = new Scanner(System.in);
-        Player targetPlayer = null;
-
-        while (true) {
-            System.out.println("Who would you like to take a pigeon from?");
-            // List possible targets
-            for (Player p : allPlayers) {
-                if (!p.equals(currentPlayer)) {
-                    System.out.println("Player " + p.getPlayerNumber());
-                }
-            }
-
-            try {
-                int targetNum = sc.nextInt();
-                targetPlayer = Arrays.stream(allPlayers)
-                        .filter(p -> p.getPlayerNumber() == targetNum && !p.equals(currentPlayer))
-                        .findFirst()
-                        .orElse(null);
-
-                if (targetPlayer == null) {
-                    System.out.println("Invalid choice. You cannot target yourself or a non-existent player. Try again.");
-                    continue;
-                }
-                break; // valid target
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter an integer.");
-                sc.next(); // consume invalid input
+        Player target = gui.promptChoosePlayer("Take 1 pigeon from which player?", currentPlayer);
+        if (target != null) {
+            if (target.getBench().getNumPigeons() > 0) {
+                target.getBench().subtractPigeons(1);
+                currentPlayer.getBench().addPigeons(1);
+                gui.appendLog("Player " + currentPlayer.getPlayerNumber() + " took 1 pigeon from Player " + target.getPlayerNumber());
+            } else {
+                gui.appendLog("Player " + target.getPlayerNumber() + " has no pigeons to take.");
             }
         }
-
-        // Execute the action
-        if (targetPlayer.getBench().getNumPigeons() > 0) {
-            targetPlayer.getBench().subtractPigeons(1);
-            currentPlayer.getBench().addPigeons(1);
-            System.out.println("One pigeon taken from Player " + targetPlayer.getPlayerNumber());
-        } else {
-            System.out.println("That player has no pigeons to take.");
-        }
+        gui.updateTurn();
     }
 
-    public static void takeThreePigeonsFromFlock(Player[] allPlayers) {
+    public static void takeThreePigeonsFromFlock(List<Player> allPlayers, PigeonGameGUI gui) {
         Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
-        for (Player p : allPlayers) {
-            if (p.getPlayerNumber() == currentPlayer.getPlayerNumber()) {
-                p.getBench().addPigeons(3);
-            }
+        currentPlayer.getBench().addPigeons(3);
+        gui.appendLog("Player " + currentPlayer.getPlayerNumber() + " takes 3 pigeons from the flock.");
+        gui.updateTurn();
+    }
+
+    public static void slideLeft(List<Player> allPlayers, PigeonGameGUI gui) {
+        int firstBench = allPlayers.get(0).getBench().getNumPigeons();
+        for (int i = 0; i < allPlayers.size() - 1; i++) {
+            allPlayers.get(i).getBench().setNumberPigeons(allPlayers.get(i + 1).getBench().getNumPigeons());
         }
+        allPlayers.get(allPlayers.size() - 1).getBench().setNumberPigeons(firstBench);
+        gui.appendLog("All benches slid left.");
+        gui.updateTurn();
     }
 
-    public static void slideLeft(Player[] allPlayers) {
-        int numFirstBench = allPlayers[0].getBench().getNumPigeons();
-        for (int i=0; i < allPlayers.length - 1; i++) {
-                allPlayers[i].getBench().setNumberPigeons(allPlayers[i+1].getBench().getNumPigeons());
-            }
-        allPlayers[allPlayers.length - 1].getBench().setNumberPigeons(numFirstBench);
-    }
-
-    public static void slideRight(Player[] allPlayers) {
-        int numLastBench = allPlayers[allPlayers.length - 1].getBench().getNumPigeons();
-        for (int i=allPlayers.length -1 ; i > 0; i--) {
-            allPlayers[i].getBench().setNumberPigeons(allPlayers[i-1].getBench().getNumPigeons());
+    public static void slideRight(List<Player> allPlayers, PigeonGameGUI gui) {
+        int lastBench = allPlayers.get(allPlayers.size() - 1).getBench().getNumPigeons();
+        for (int i = allPlayers.size() - 1; i > 0; i--) {
+            allPlayers.get(i).getBench().setNumberPigeons(allPlayers.get(i - 1).getBench().getNumPigeons());
         }
-        allPlayers[0].getBench().setNumberPigeons(numLastBench);
+        allPlayers.get(0).getBench().setNumberPigeons(lastBench);
+        gui.appendLog("All benches slid right.");
+        gui.updateTurn();
     }
 
-    public static void takeTwoGiveOnePigeon(Player[] allPlayers) {
+    public static void takeTwoGiveOnePigeon(List<Player> allPlayers, PigeonGameGUI gui) {
         Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
-        Scanner sc = new Scanner(System.in);
-        Player targetPlayer = null;
-
-        while (true) {
-            System.out.println("Who would you like to give a pigeon to? (from the flock)");
-
-            // List possible target players (excluding current player if needed)
-            for (Player p : allPlayers) {
-                if (!p.equals(currentPlayer)) {
-                    System.out.println("Player " + p.getPlayerNumber());
-                }
-            }
-
-            try {
-                int targetNum = sc.nextInt();
-                targetPlayer = Arrays.stream(allPlayers)
-                        .filter(p -> p.getPlayerNumber() == targetNum && !p.equals(currentPlayer))
-                        .findFirst()
-                        .orElse(null);
-
-                if (targetPlayer == null) {
-                    System.out.println("Invalid choice. You cannot target yourself or a non-existent player. Try again.");
-                    continue;
-                }
-                break; // valid target
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter an integer.");
-                sc.next(); // consume invalid token
-            }
+        Player target = gui.promptChoosePlayer("Give 1 pigeon to which player?", currentPlayer);
+        if (target != null) {
+            target.getBench().addPigeons(1);
+            currentPlayer.getBench().addPigeons(2);
+            gui.appendLog("Player " + currentPlayer.getPlayerNumber() + " gave 1 pigeon to Player " + target.getPlayerNumber() + " and took 2 pigeons from the flock.");
         }
-
-        // Execute the action
-        targetPlayer.getBench().addPigeons(1);
-        currentPlayer.getBench().addPigeons(2);
-        System.out.println("Gave 1 pigeon to Player " + targetPlayer.getPlayerNumber() + " and took 2 pigeons from the flock.");
+        gui.updateTurn();
     }
 
-    public static void belowFourTakeTwo(Player[] allPlayers) {
+    public static void belowFourTakeTwo(List<Player> allPlayers, PigeonGameGUI gui) {
         for (Player p : allPlayers) {
             if (p.getBench().getNumPigeons() <= 3) {
                 p.getBench().addPigeons(2);
+                gui.appendLog("Player " + p.getPlayerNumber() + " had ≤3 pigeons and gains 2 pigeons.");
             }
         }
+        gui.updateTurn();
     }
 
-    public static void allTakeOne(Player[] allPlayers) {
+    public static void allTakeOne(List<Player> allPlayers, PigeonGameGUI gui) {
         for (Player p : allPlayers) {
             p.getBench().addPigeons(1);
+            gui.appendLog("Player " + p.getPlayerNumber() + " takes 1 pigeon from the flock.");
         }
+        gui.updateTurn();
     }
 
-    public static void swapBench(Player[] allPlayers) {
+    public static void swapBench(List<Player> allPlayers, PigeonGameGUI gui) {
         Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
-        Scanner sc = new Scanner(System.in);
-        Player targetPlayer = null;
-
-        while (true) {
-            System.out.println("Who would you like to swap benches with?");
-            // List valid target players (excluding current player)
-            for (Player p : allPlayers) {
-                if (!p.equals(currentPlayer)) {
-                    System.out.println("Player " + p.getPlayerNumber());
-                }
-            }
-
-            try {
-                int targetNum = sc.nextInt();
-                targetPlayer = Arrays.stream(allPlayers)
-                        .filter(p -> p.getPlayerNumber() == targetNum && !p.equals(currentPlayer))
-                        .findFirst()
-                        .orElse(null);
-
-                if (targetPlayer == null) {
-                    System.out.println("Invalid choice. You cannot swap with yourself or a non-existent player. Try again.");
-                    continue;
-                }
-                break; // valid target
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter an integer.");
-                sc.next(); // consume invalid token
-            }
+        Player target = gui.promptChoosePlayer("Swap benches with which player?", currentPlayer);
+        if (target != null) {
+            int temp = currentPlayer.getBench().getNumPigeons();
+            currentPlayer.getBench().setNumberPigeons(target.getBench().getNumPigeons());
+            target.getBench().setNumberPigeons(temp);
+            gui.appendLog("Player " + currentPlayer.getPlayerNumber() + " swapped benches with Player " + target.getPlayerNumber());
         }
-
-        // Swap benches
-        int currentPlayerBench = currentPlayer.getBench().getNumPigeons();
-        int targetPlayerBench = targetPlayer.getBench().getNumPigeons();
-        currentPlayer.getBench().setNumberPigeons(targetPlayerBench);
-        targetPlayer.getBench().setNumberPigeons(currentPlayerBench);
-
-        System.out.println("Swapped benches with Player " + targetPlayer.getPlayerNumber());
+        gui.updateTurn();
     }
 
-    public static void takeOneFromAll(Player[] allPlayers) {
+    public static void takeOneFromAll(List<Player> allPlayers, PigeonGameGUI gui) {
         Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
         for (Player p : allPlayers) {
-            if (p.getPlayerNumber() != currentPlayer.getPlayerNumber()
-                    && p.getBench().getNumPigeons() > 0) {
+            if (p != currentPlayer && p.getBench().getNumPigeons() > 0) {
                 p.getBench().subtractPigeons(1);
                 currentPlayer.getBench().addPigeons(1);
+                gui.appendLog("Player " + currentPlayer.getPlayerNumber() + " took 1 pigeon from Player " + p.getPlayerNumber());
             }
         }
+        gui.updateTurn();
     }
 
-    public static void takeThreeFromMost(Player[] allPlayers) {
-        // Find the maximum number of pigeons
-        int max = Arrays.stream(allPlayers)
-                .mapToInt(p -> p.getBench().getNumPigeons())
-                .max()
-                .orElse(0);
+    public static void takeThreeFromMost(List<Player> allPlayers, PigeonGameGUI gui) {
+        int max = allPlayers.stream().mapToInt(p -> p.getBench().getNumPigeons()).max().orElse(0);
+        List<Player> maxPlayers = allPlayers.stream().filter(p -> p.getBench().getNumPigeons() == max).toList();
 
-        // Find all players with max pigeons
-        List<Player> maxPlayers = Arrays.stream(allPlayers)
-                .filter(p -> p.getBench().getNumPigeons() == max)
-                .toList();
-
-        Player targetPlayer = null;
-        Scanner sc = new Scanner(System.in);
-
+        Player target;
         if (maxPlayers.size() > 1) {
-            // Multiple players have max pigeons, ask which one to target
-            while (true) {
-                System.out.println("Multiple players have the most pigeons. " +
-                        "Choose a player to lose 3 pigeons:");
-                for (Player p : maxPlayers) {
-                    System.out.println("Player " + p.getPlayerNumber());
-                }
-
-                try {
-                    int choice = sc.nextInt();
-                    targetPlayer = maxPlayers.stream()
-                            .filter(p -> p.getPlayerNumber() == choice)
-                            .findFirst()
-                            .orElse(null);
-
-                    if (targetPlayer == null) {
-                        System.out.println("Invalid choice. Try again.");
-                        continue;
-                    }
-                    break; // valid choice
-                } catch (InputMismatchException e) {
-                    System.out.println("Invalid input. Please enter an integer.");
-                    sc.next(); // consume invalid token
-                }
-            }
+            target = gui.promptChoosePlayer("Multiple players have most pigeons. Choose one to lose 3 pigeons:", null);
         } else {
-            // Only one player has the max pigeons
-            targetPlayer = maxPlayers.get(0);
+            target = maxPlayers.get(0);
         }
 
-        // Apply action
-        targetPlayer.getBench().subtractPigeons(3);
-        System.out.println("Player " + targetPlayer.getPlayerNumber() + " loses 3 pigeons.");
-    }
-
-    public static void onePlayerLoseTwo(Player[] allPlayers) {
-        Scanner sc = new Scanner(System.in);
-        Player targetPlayer = null;
-        Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
-
-        while (true) {
-            System.out.println("Who would you like to lose 2 pigeons?");
-            // List all valid players
-            for (Player p : allPlayers) {
-                if (!p.equals(currentPlayer)) {
-                    System.out.println("Player " + p.getPlayerNumber());
-                }
-            }
-
-            try {
-                int targetNum = sc.nextInt();
-                targetPlayer = Arrays.stream(allPlayers)
-                        .filter(p -> p.getPlayerNumber() == targetNum && !p.equals(currentPlayer)) // exclude self
-                        .findFirst()
-                        .orElse(null);
-
-                if (targetPlayer == null) {
-                    System.out.println("Invalid choice. You can’t pick yourself. Try again.");
-                    continue;
-                }
-                break; // valid target
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter an integer.");
-                sc.next(); // consume invalid token
-            }
+        if (target != null) {
+            target.getBench().subtractPigeons(3);
+            gui.appendLog("Player " + target.getPlayerNumber() + " loses 3 pigeons.");
         }
-
-        // Execute action
-        targetPlayer.getBench().subtractPigeons(2);
-        System.out.println("Player " + targetPlayer.getPlayerNumber() + " loses 2 pigeons.");
+        gui.updateTurn();
     }
 
-    public static void ohMyPigeons(Player[] allPlayers) {
-        Random rand = new Random();
+    public static void onePlayerLoseTwo(List<Player> allPlayers, PigeonGameGUI gui) {
         Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
-        int diceRoll = rand.nextInt(6) + 1;
-        switch (diceRoll) {
-            case 1,6:
-                System.out.println("Flick poo");
-                flickPoo(allPlayers);
-                break;
-            case 2:
-                System.out.println("Take 2 pigeons from other players");
-                takeOnePigeonFromAnotherPlayer(allPlayers);
-                takeOnePigeonFromAnotherPlayer(allPlayers);
-                break;
-            case 3:
-                System.out.println("Take 3 pigeons from the flock");
+        Player target = gui.promptChoosePlayer("Choose a player to lose 2 pigeons:", currentPlayer);
+        if (target != null) {
+            target.getBench().subtractPigeons(2);
+            gui.appendLog("Player " + target.getPlayerNumber() + " loses 2 pigeons.");
+        }
+        gui.updateTurn();
+    }
+
+    public static void ohMyPigeons(List<Player> allPlayers, PigeonGameGUI gui) {
+        Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
+        int dice = new Random().nextInt(6) + 1;
+        switch (dice) {
+            case 1, 6 -> {
+                gui.appendLog("Dice rolled: " + dice + " → Flick poo!");
+                flickPoo(allPlayers, gui);
+            }
+            case 2 -> {
+                gui.appendLog("Dice rolled: " + dice + " → Take 2 pigeons from other players");
+                takeOnePigeonFromAnotherPlayer(allPlayers, gui);
+                takeOnePigeonFromAnotherPlayer(allPlayers, gui);
+            }
+            case 3 -> {
+                gui.appendLog("Dice rolled: " + dice + " → Take 3 pigeons from the flock");
                 currentPlayer.getBench().addPigeons(3);
-                break;
-            case 4:
-                System.out.println("Take 4 pigeons from other players");
-                takeOnePigeonFromAnotherPlayer(allPlayers);
-                takeOnePigeonFromAnotherPlayer(allPlayers);
-                takeOnePigeonFromAnotherPlayer(allPlayers);
-                takeOnePigeonFromAnotherPlayer(allPlayers);
-                break;
-            case 5:
-                System.out.println("Take 5 pigeons from the flock");
+            }
+            case 4 -> {
+                gui.appendLog("Dice rolled: " + dice + " → Take 4 pigeons from other players");
+                for (int i = 0; i < 4; i++) takeOnePigeonFromAnotherPlayer(allPlayers, gui);
+            }
+            case 5 -> {
+                gui.appendLog("Dice rolled: " + dice + " → Take 5 pigeons from the flock");
                 currentPlayer.getBench().addPigeons(5);
-                break;
+            }
         }
+        gui.updateTurn();
     }
 
-    public static void flickPoo(Player[] allPlayers) {
+    public static void flickPoo(List<Player> allPlayers, PigeonGameGUI gui) {
         Player currentPlayer = Datastore.retrieveValue("currentPlayer", Player.class);
-        Scanner sc = new Scanner(System.in);
-        Player targetPlayer = null;
+        Player target = gui.promptChoosePlayer("Flick poo at which player?", currentPlayer);
+        if (target != null) {
+            int roll = new Random().nextInt(14);
+            int pigeonsLost;
+            if (roll <= 3) pigeonsLost = 0;
+            else if (roll <= 6) pigeonsLost = 1;
+            else if (roll <= 9) pigeonsLost = 2;
+            else if (roll <= 11) pigeonsLost = 3;
+            else if (roll == 12) pigeonsLost = 4;
+            else pigeonsLost = 5;
 
-        while (true) {
-            System.out.println("Who would you like to flick poo at?");
-            // List valid target players (excluding current player)
-            for (Player p : allPlayers) {
-                if (!p.equals(currentPlayer)) {
-                    System.out.println("Player " + p.getPlayerNumber());
-                }
-            }
-
-            try {
-                int targetNum = sc.nextInt();
-                targetPlayer = Arrays.stream(allPlayers)
-                        .filter(p -> p.getPlayerNumber() == targetNum && !p.equals(currentPlayer))
-                        .findFirst()
-                        .orElse(null);
-
-                if (targetPlayer == null) {
-                    System.out.println("Invalid choice. You can't flick poo at yourself!");
-                    continue;
-                }
-                break; // valid target
-            } catch (InputMismatchException e) {
-                System.out.println("Invalid input. Please enter an integer.");
-                sc.next(); // consume invalid token
-            }
+            target.getBench().subtractPigeons(pigeonsLost);
+            gui.appendLog("Player " + target.getPlayerNumber() + " lost " + pigeonsLost + " pigeons from poo flick!");
         }
-        Random rand = new Random();
-        int random = rand.nextInt(14);
-        switch (random) {
-            case 0,1,2,3:
-                System.out.println("You missed! No pigeons hit.");
-                break;
-            case 4,5,6:
-                System.out.println("You took out 1 pigeon!");
-                targetPlayer.getBench().subtractPigeons(1);
-                break;
-            case 7,8,9:
-                System.out.println("You took out 2 pigeons!");
-                targetPlayer.getBench().subtractPigeons(2);
-                break;
-            case 10,11:
-                System.out.println("You took out 3 pigeons!");
-                targetPlayer.getBench().subtractPigeons(3);
-                break;
-            case 12:
-                System.out.println("You took out 4 pigeons!");
-                targetPlayer.getBench().subtractPigeons(4);
-                break;
-            case 13:
-                System.out.println("You took out 5 pigeons!");
-                targetPlayer.getBench().subtractPigeons(5);
-                break;
-
-        }
+        gui.updateTurn();
     }
 }

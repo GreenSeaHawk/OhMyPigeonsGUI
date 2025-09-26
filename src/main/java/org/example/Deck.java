@@ -5,12 +5,13 @@ import java.util.Collections;
 import java.util.List;
 
 public class Deck {
-    private List<Card> deck;
-    private List<Card> discardPile;
+    private final List<Card> deck;
+    private final List<Card> discardPile;
 
     public Deck(List<Card> startingCards) {
-        this.deck = new ArrayList<>(startingCards); // copy starting deck
+        this.deck = new ArrayList<>(startingCards);
         this.discardPile = new ArrayList<>();
+        shuffle();
     }
 
     public void shuffle() {
@@ -20,8 +21,12 @@ public class Deck {
     public Card draw() {
         if (deck.isEmpty()) {
             reshuffleFromDiscard();
+            if (deck.isEmpty()) {
+                // No cards left at all
+                throw new IllegalStateException("No cards left in deck or discard pile!");
+            }
         }
-        return deck.remove(0); // take from top
+        return deck.remove(0);
     }
 
     public void discard(Card card) {
@@ -29,19 +34,26 @@ public class Deck {
     }
 
     public void reshuffleFromDiscard() {
-        deck.addAll(discardPile);
-        discardPile.clear();
-        shuffle();
+        if (!discardPile.isEmpty()) {
+            deck.addAll(discardPile);
+            discardPile.clear();
+            shuffle();
+        }
+    }
+
+    public int deckSize() {
+        return deck.size();
+    }
+
+    public int discardSize() {
+        return discardPile.size();
     }
 
     public List<Card> getDeck() {
-        return deck;
+        return new ArrayList<>(deck);
     }
 
     public List<Card> getDiscard() {
-        return discardPile;
+        return new ArrayList<>(discardPile);
     }
-
-    public int deckSize() { return deck.size(); }
-    public int discardSize() { return discardPile.size(); }
 }

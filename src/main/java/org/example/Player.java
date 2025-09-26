@@ -43,9 +43,13 @@ public class Player {
         }
     }
 
-    public void playCard(int index) {
+    public Card playCard(int index, PigeonGameGUI gui) {
+        if (index < 0 || index >= hand.size()) {
+            throw new IllegalArgumentException("Invalid card index");
+        }
         Card card = hand.get(index);
-        card.performAction();
+        card.performAction(gui); // ✅ pass the GUI
         hand.remove(index);
+        return card;
     }
 }

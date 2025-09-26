@@ -6,7 +6,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class DeckBuilder {
-    public static List<Card> buildDeck(String csvFilePath, List<Player> players) {
+
+    public static List<Card> buildDeck(String csvFilePath, List<Player> players, PigeonGameGUI gui) {
         List<Card> deck = new ArrayList<>();
 
         try (BufferedReader br = new BufferedReader(new FileReader(csvFilePath))) {
@@ -18,7 +19,7 @@ public class DeckBuilder {
                 int quantity = Integer.parseInt(values[2]);
                 String actionName = values[3];
 
-                Runnable action = CardFactory.getAction(actionName, players);
+                CardAction action = CardFactory.getAction(actionName, players);
 
                 for (int i = 0; i < quantity; i++) {
                     deck.add(new Card(name, description, action));
@@ -31,4 +32,3 @@ public class DeckBuilder {
         return deck;
     }
 }
-
