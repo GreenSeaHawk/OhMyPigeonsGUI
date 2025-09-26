@@ -1,0 +1,14 @@
+name,description,quantity,action
+AHHHH!!,All other players return 1 pigeon to the flock,2,removeOnePigeonFromEveryoneElse
+Let's get this bread,Take 3 pigeons from the flock,2,takeThreePigeonsFromFlock
+Be not afraid my child,Take 2 pigeons from the flock and give 1 pigeon from the flock to another player,2,takeTwoGiveOnePigeon
+Sliiiide to the right,All players pass their bench to the right,2,slideRight
+Sliiiide to the left,All players pass their bench to the left,2,slideLeft
+Pigeon party,All players with 3 or fewer pigeons take 2 from the flock,2,belowFourTakeTwo
+Is this a pigeon?,All players take 1 pigeon from the flock,2,allTakeOne
+I'll take that,Take 1 pigeon from another player,3,takeOnePigeonFromAnotherPlayer
+Swapsies,Trade benches with another player,3,swapBench
+Attack,Take 1 pigeon from each other player,3,takeOneFromAll
+Why,The player with the most pigeons returns 3 to the flock. (If there's a tie you choose who must return their pigeons to the flock),3,takeThreeFromMost
+Byeee,Choose another player to return 2 pigeons to the flock,3,onePlayerLoseTwo
+OH MY PIGEONS,Roll the die! Take pigeons or flick poo!,11,ohMyPigeons
